@@ -42,13 +42,28 @@ print(f"[entrypoint] appended {len(new)} Solana whales")
 PY
 fi
 
-# ---- Boot ping to Discord (simple content message) ----
-if [[ "$PING_ON_BOOT" == "1" && -n "${DISCORD_WEBHOOK_URL:-}" ]]; then
-  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  msg="🟢 WhaleWatch is alive — booted at ${now} (UTC)"
-  curl -s -X POST -H "Content-Type: application/json" \
-       -d "{\"content\":\"${msg}\"}" \
-       "${DISCORD_WEBHOOK_URL}" >/dev/null || true
+# ---- Boot ping to Discord using Python requests ----
+if [[ "$PING_ON_BOOT" == "1" ]]; then
+python - <<'PY'
+import os, datetime, json
+try:
+    import requests  # installed by requirements
+except Exception as e:
+    print("[entrypoint] requests not available for boot ping:", e)
+    requests = None
+
+url = os.environ.get("DISCORD_WEBHOOK_URL")
+if url and requests:
+    ts = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    payload = {"content": f"🟢 WhaleWatch is alive — booted at {ts} (UTC)"}
+    try:
+        r = requests.post(url, json=payload, timeout=10)
+        print(f"[entrypoint] boot ping status: {r.status_code}")
+    except Exception as e:
+        print("[entrypoint] boot ping failed:", e)
+else:
+    print("[entrypoint] boot ping skipped (no URL or requests missing)")
+PY
 fi
 
 exec python /app/whale_watcher.py --config "$CONFIG_PATH"
