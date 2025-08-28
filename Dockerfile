@@ -1,5 +1,5 @@
-# Dockerfile
-# Runs whale_watcher 24/7 on Railway with a persistent /data volume.
+# Dockerfile (Railway-safe)
+# Runs whale_watcher 24/7. No VOLUME directive (use Railway volumes in the UI).
 
 FROM python:3.12-slim
 
@@ -24,9 +24,6 @@ COPY entrypoint.sh /app/
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
-
-# Persist config + autolearn state here (Railway volume)
-VOLUME ["/data"]
 
 # Start the worker
 CMD ["/app/entrypoint.sh"]
