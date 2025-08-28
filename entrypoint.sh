@@ -2,6 +2,8 @@
 set -euo pipefail
 
 CONFIG_PATH="${CONFIG_PATH:-/data/config.yaml}"
+PING_ON_BOOT="${PING_ON_BOOT:-1}"
+
 mkdir -p /data
 
 # One-shot rebuild of /data/config.yaml if requested
@@ -38,6 +40,15 @@ with open(cfg_path, "w") as f:
     yaml.safe_dump(cfg, f, sort_keys=False)
 print(f"[entrypoint] appended {len(new)} Solana whales")
 PY
+fi
+
+# ---- Boot ping to Discord (simple content message) ----
+if [[ "$PING_ON_BOOT" == "1" && -n "${DISCORD_WEBHOOK_URL:-}" ]]; then
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  msg="🟢 WhaleWatch is alive — booted at ${now} (UTC)"
+  curl -s -X POST -H "Content-Type: application/json" \
+       -d "{\"content\":\"${msg}\"}" \
+       "${DISCORD_WEBHOOK_URL}" >/dev/null || true
 fi
 
 exec python /app/whale_watcher.py --config "$CONFIG_PATH"
